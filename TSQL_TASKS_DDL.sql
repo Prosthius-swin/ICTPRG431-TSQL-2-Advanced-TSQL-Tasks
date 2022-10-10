@@ -1,68 +1,81 @@
 -- CREATE DATABASE ICTPRG431_TSQL_2_Advanced_TSQL_Tasks;
 -- GO
 
--- USE ICTPRG431_TSQL_2_Advanced_TSQL_Tasks;
--- GO
+USE ICTPRG431_TSQL_2_Advanced_TSQL_Tasks;
+GO
 
--- IF OBJECT_ID('Sale9468') IS NOT NULL
--- DROP TABLE Sale9468;
+IF OBJECT_ID('Sale9468') IS NOT NULL
+DROP TABLE Sale9468;
 
--- IF OBJECT_ID('Product9468') IS NOT NULL
--- DROP TABLE PRODUCT9468;
+IF OBJECT_ID('Product9468') IS NOT NULL
+DROP TABLE PRODUCT9468;
 
--- IF OBJECT_ID('Customer9468') IS NOT NULL
--- DROP TABLE CUSTOMER9468;
+IF OBJECT_ID('Customer9468') IS NOT NULL
+DROP TABLE CUSTOMER9468;
 
--- IF OBJECT_ID('Location9468') IS NOT NULL
--- DROP TABLE LOCATION9468;
+IF OBJECT_ID('Location9468') IS NOT NULL
+DROP TABLE LOCATION9468;
 
--- GO
+GO
 
--- CREATE TABLE CUSTOMER9468 (
--- CUSTID	INT
--- , CUSTNAME	NVARCHAR(100)
--- , Sales_YTD	MONEY
--- , STATUS	NVARCHAR(7)
--- , PRIMARY KEY	(CUSTID) 
--- );
+CREATE TABLE CUSTOMER9468 (
+CUSTID	INT
+, CUSTNAME	NVARCHAR(100)
+, Sales_YTD	MONEY
+, STATUS	NVARCHAR(7)
+, PRIMARY KEY	(CUSTID) 
+);
 
 
--- CREATE TABLE PRODUCT9468 (
--- PRODID	INT
--- , PRODNAME	NVARCHAR(100)
--- , SELLING_PRICE	MONEY
--- , Sales_YTD	MONEY
--- , PRIMARY KEY	(PRODID)
--- );
+CREATE TABLE PRODUCT9468 (
+PRODID	INT
+, PRODNAME	NVARCHAR(100)
+, SELLING_PRICE	MONEY
+, Sales_YTD	MONEY
+, PRIMARY KEY	(PRODID)
+);
 
--- CREATE TABLE Sale9468 (
--- SaleID	BIGINT
--- , CUSTID	INT
--- , PRODID	INT
--- , QTY	INT
--- , PRICE	MONEY
--- , SaleDATE	DATE
--- , PRIMARY KEY 	(SaleID)
--- , FOREIGN KEY 	(CUSTID) REFERENCES CUSTOMER9468
--- , FOREIGN KEY 	(PRODID) REFERENCES PRODUCT9468
--- );
+CREATE TABLE Sale9468 (
+SaleID	BIGINT
+, CUSTID	INT
+, PRODID	INT
+, QTY	INT
+, PRICE	MONEY
+, SaleDATE	DATE
+, PRIMARY KEY 	(SaleID)
+, FOREIGN KEY 	(CUSTID) REFERENCES CUSTOMER9468
+, FOREIGN KEY 	(PRODID) REFERENCES PRODUCT9468
+);
 
--- CREATE TABLE LOCATION9468 (
---   LOCID	NVARCHAR(5)
--- , MINQTY	INTEGER
--- , MAXQTY	INTEGER
--- , PRIMARY KEY 	(LOCID)
--- , CONSTRAINT CHECK_LOCID_LENGTH CHECK (LEN(LOCID) = 5)
--- , CONSTRAINT CHECK_MINQTY_RANGE CHECK (MINQTY BETWEEN 0 AND 999)
--- , CONSTRAINT CHECK_MAXQTY_RANGE CHECK (MAXQTY BETWEEN 0 AND 999)
--- , CONSTRAINT CHECK_MAXQTY_GREATER_MIXQTY CHECK (MAXQTY >= MINQTY)
--- );
+CREATE TABLE LOCATION9468 (
+  LOCID	NVARCHAR(5)
+, MINQTY	INTEGER
+, MAXQTY	INTEGER
+, PRIMARY KEY 	(LOCID)
+, CONSTRAINT CHECK_LOCID_LENGTH CHECK (LEN(LOCID) = 5)
+, CONSTRAINT CHECK_MINQTY_RANGE CHECK (MINQTY BETWEEN 0 AND 999)
+, CONSTRAINT CHECK_MAXQTY_RANGE CHECK (MAXQTY BETWEEN 0 AND 999)
+, CONSTRAINT CHECK_MAXQTY_GREATER_MIXQTY CHECK (MAXQTY >= MINQTY)
+);
 
--- IF OBJECT_ID('Sale_SEQ') IS NOT NULL
--- DROP SEQUENCE Sale_SEQ;
--- CREATE SEQUENCE Sale_SEQ;
+IF OBJECT_ID('Sale_SEQ') IS NOT NULL
+DROP SEQUENCE Sale_SEQ;
+CREATE SEQUENCE Sale_SEQ;
 
--- GO
+GO
+
+EXEC ADD_CUSTOMER @pcustid = 2, @pcustname = 'Jane Smith';
+GO
+EXEC ADD_CUSTOMER @pcustid = 1, @pcustname = 'John Doe';
+GO
+EXEC ADD_PRODUCT @pprodid = 1000, @pprodname = 'Product 1', @pprice = 10.00;
+GO
+EXEC ADD_PRODUCT @pprodid = 1002, @pprodname = 'Product 5', @pprice = 20.00;
+GO
+
+SELECT * FROM PRODUCT9468
+SELECT * FROM CUSTOMER9468
+
 
 -- 1
 DROP PROCEDURE IF EXISTS ADD_CUSTOMER;
@@ -115,8 +128,8 @@ BEGIN
 END
 GO
 
-EXEC DELETE_ALL_CUSTOMERS;
-GO
+-- EXEC DELETE_ALL_CUSTOMERS;
+-- GO
 
 
 
@@ -157,7 +170,7 @@ EXEC ADD_PRODUCT @pprodid = 999, @pprodname = 'Product 3', @pprice = 30.00;
 GO
 EXEC ADD_PRODUCT @pprodid = 1001, @pprodname = 'Product 4', @pprice = 1000.00;
 GO
-EXEC ADD_PRODUCT @pprodid = 1001, @pprodname = 'Product 5', @pprice = 10.00;
+EXEC ADD_PRODUCT @pprodid = 1002, @pprodname = 'Product 5', @pprice = 20.00;
 GO
 
 
@@ -195,6 +208,8 @@ EXEC UPD_CUST_SALESYTD @pcustid = 1, @pamt = -1000.00;
 GO
 EXEC UPD_CUST_SALESYTD @pcustid = 1, @pamt = 100.00;
 GO
+
+
 
 -- 5
 DROP PROCEDURE IF EXISTS UPD_PROD_SALESYTD;
@@ -288,29 +303,108 @@ GO
 
 
 -- 8
+INSERT INTO CUSTOMER9468 (CUSTID, CUSTNAME, Sales_YTD, STATUS)
+VALUES (3, 'Customer 1', 0.00, 'A');
+
 DROP PROCEDURE IF EXISTS ADD_SALE;
 GO
-CREATE PROCEDURE ADD_SALE @pcustid INT, @pprodid INT, @pqty INT, @pdate DATE AS
+CREATE PROCEDURE ADD_SALE @pcustid INT, @pprodid INT, @pqty INT, @pdate NVARCHAR(10) AS
 BEGIN
   BEGIN TRY
-    DECLARE @pCustStatus NVARCHAR(7)
+    DECLARE @custStatus NVARCHAR(10), @pcustidValid INT, @pprodidValid INT;
 
+    SET @custStatus = (SELECT STATUS
+                       FROM CUSTOMER9468
+                       WHERE CUSTID = @pcustid);
+
+    SET @pcustidValid = (SELECT CUSTID
+                         FROM CUSTOMER9468
+                         WHERE CUSTID = @pcustid);
+    
+    SET @pprodidValid = (SELECT PRODID 
+                        FROM PRODUCT9468 
+                        WHERE PRODID = @pprodid);
+    
     IF @pqty < 1 OR @pqty > 999
       THROW 50230, 'Sale quantity outside valid range', 1;
-    -- ELSE IF 
-
-    INSERT INTO SALE9468 (SALEID, CUSTID, PRODID, QTY, SALEDATE)
-    VALUES (NEXT VALUE FOR Sale_SEQ, @pcustid, @pprodid, @pqty, @pdate);
+    ELSE IF @custStatus != 'OK'
+      THROW 50240, 'Customer status is not OK', 1 
+    ELSE IF ISDATE(@pdate) != 1
+      THROW 50250, 'Date not valid', 1
+    ELSE IF @pcustidValid IS NULL
+      THROW 50260, 'Customer ID not found', 1;
+    ELSE IF @pprodidValid IS NULL
+      THROW 50270, 'Product ID not found', 1;
+    ELSE
+      INSERT INTO SALE9468 (SALEID, CUSTID, PRODID, QTY, SALEDATE)
+      VALUES (NEXT VALUE FOR Sale_SEQ, @pcustid, @pprodid, @pqty, @pdate)
+    
   END TRY
   BEGIN CATCH
     IF ERROR_NUMBER() = 50230
       THROW 50230, 'Sale quantity outside valid range', 1;
+    ELSE IF ERROR_NUMBER() = 50240
+      THROW 50240, 'Customer status is not OK', 1;
+    ELSE IF ERROR_NUMBER() = 50250
+      THROW 50250, 'Date not valid', 1;
+    ELSE IF ERROR_NUMBER() = 50260
+      THROW 50260, 'Customer ID not found', 1;
+    ELSE IF ERROR_NUMBER() = 50270
+      THROW 50270, 'Product ID not found', 1;
     ELSE
       DECLARE @ErrorMessage NVARCHAR(MAX) = ERROR_MESSAGE();
       THROW 50000, @ERRORMESSAGE, 1;
   END CATCH
 END
     
-EXEC ADD_SALE @pcustid = 1, @pprodid = 1, @pqty = 1, @pdate = '2019-01-01';
+EXEC ADD_SALE @pcustid = 1, @pprodid = 1000, @pqty = 1000, @pdate = '2017-01-01';
+GO
+EXEC ADD_SALE @pcustid = 3, @pprodid = 1000, @pqty = 1, @pdate = '2017-01-01';
+GO
+EXEC ADD_SALE @pcustid = 1, @pprodid = 1000, @pqty = 1, @pdate = '201-01-01';
+GO
+EXEC ADD_SALE @pcustid = 10, @pprodid = 1000, @pqty = 1, @pdate = '2017-01-01';
+GO
+EXEC ADD_SALE @pcustid = 1, @pprodid = 1, @pqty = 1, @pdate = '2017-01-01';
+GO
+EXEC ADD_SALE @pcustid = 1, @pprodid = 1002, @pqty = 1, @pdate = '2017-01-01';
+GO
 
-SELECT * FROM sys.sequences WHERE name = 'SALE_SEQ';
+
+-- 9
+DROP TRIGGER IF EXISTS TR_ON_SALE;
+GO
+CREATE TRIGGER TR_ON_SALE ON SALE9468 AFTER INSERT AS
+  BEGIN
+    DECLARE @totalSaleValue MONEY, @prodID INT, @custID INT;
+
+    SET @totalSaleValue = (SELECT SUM(S.QTY * P.SELLING_PRICE)
+                          FROM SALE9468 S
+                          INNER JOIN PRODUCT9468 P
+                          ON S.PRODID = P.PRODID
+                          WHERE S.SALEID = (SELECT SaleID
+                                            FROM INSERTED));
+                                          
+    UPDATE Sale9468 
+      SET PRICE = @totalSaleValue
+      WHERE SALEID = (SELECT SaleID
+                      FROM INSERTED);
+    
+    SET @prodID = (SELECT PRODID
+                  FROM INSERTED);
+
+    SET @custID = (SELECT CUSTID
+                  FROM INSERTED);
+
+    EXEC UPD_PROD_SALESYTD @pprodid = @prodID, @pamt = @totalSaleValue;
+    EXEC UPD_CUST_SALESYTD @pcustid = @custID, @pamt = @totalSaleValue;
+  END
+
+EXEC ADD_SALE @pcustid = 1, @pprodid = 1002, @pqty = 5, @pdate = '2017-01-01';
+GO
+EXEC ADD_SALE @pcustid = 1, @pprodid = 1002, @pqty = 2, @pdate = '2017-01-01';
+GO
+
+SELECT * FROM PRODUCT9468
+SELECT * FROM SALE9468
+SELECT * FROM CUSTOMER9468
